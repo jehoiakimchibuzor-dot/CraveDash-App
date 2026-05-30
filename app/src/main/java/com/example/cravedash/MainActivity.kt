@@ -12,8 +12,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -25,151 +28,249 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import coil.compose.AsyncImage
 import com.example.cravedash.ui.theme.CraveDashTheme
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import coil.compose.AsyncImage
 
-/**
- * 🚀 MAIN ACTIVITY: The high-level orchestrator of the app.
- * Updated: Added Success and Addresses screens to the navigation map.
- */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             CraveDashTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    val navController = rememberNavController()
+                val context        = androidx.compose.ui.platform.LocalContext.current
+                val navController       = rememberNavController()
+                val backStackEntry      by navController.currentBackStackEntryAsState()
+                val currentRoute        = backStackEntry?.destination?.route
 
-                    NavHost(navController = navController, startDestination = "onboarding") {
+                // Init menu from SharedPreferences (once, non-blocking)
+                LaunchedEffect(Unit) { MenuRepository.init(context) }
 
-                        // --- ONBOARDING & HOME ---
-                        composable("onboarding") { OnboardingScreen { navController.navigate("home") } }
-                        composable("home") {
-                            HomeScreen(onAction = { action ->
-                                when (action) {
-                                    HomeAction.SignUp -> navController.navigate("signup")
-                                    HomeAction.LogIn -> navController.navigate("login")
-                                    HomeAction.GuestSignIn -> navController.navigate("DashBoard") { popUpTo("home") { inclusive = true } }
-                                    HomeAction.TermsAndConditions -> navController.navigate("terms")
-                                    HomeAction.PrivacyPolicy -> navController.navigate("privacy")
-                                }
-                            })
-                        }
+                // Screens that show the persistent bottom navigation bar
+                val showBottomNav = currentRoute == "DashBoard"
+                    || currentRoute?.startsWith("menu/") == true
+                    || currentRoute in setOf("chat", "favorites", "profile",
+                                             "orderHistory", "savedAddresses")
 
-                        // --- AUTHENTICATION ---
-                        composable("login") { LoginScreen { navController.navigate("DashBoard") { popUpTo("home") { inclusive = true } } } }
-                        composable("signup") {
-                            SignUpScreen(
-                                onSignUpClick = { navController.navigate("DashBoard") { popUpTo("home") { inclusive = true } } },
-                                onPrivacyClick = { navController.navigate("privacy") },
-                                onTermsClick = { navController.navigate("terms") }
-                            ) 
-                        }
-
-                        // --- DASHBOARD ---
-                        composable("DashBoard") {
-                            DashBoard(
-                                onMealClick = { navController.navigate("menu/Meals") },
-                                onSideClick = { navController.navigate("menu/Sides") },
-                                onSnackClick = { navController.navigate("menu/Snacks") },
-                                onDrinkClick = { navController.navigate("menu/Drinks") },
-                                onChatClick = { navController.navigate("chat") },
-                                onItemClick = { item ->
-                                    val name = URLEncoder.encode(item.name, StandardCharsets.UTF_8.toString())
-                                    val price = URLEncoder.encode(item.price, StandardCharsets.UTF_8.toString())
-                                    val desc = URLEncoder.encode(item.description, StandardCharsets.UTF_8.toString())
-                                    val img = URLEncoder.encode(item.imageUrl, StandardCharsets.UTF_8.toString())
-                                    navController.navigate("foodDetails/$name/$price/$desc/$img")
+                Scaffold(
+                    // Let individual screens manage their own window insets;
+                    // Scaffold only provides the bottom-nav height via paddingValues.
+                    contentWindowInsets = WindowInsets(0),
+                    bottomBar = {
+                        if (showBottomNav) {
+                            CraveDashBottomNav(
+                                currentRoute     = currentRoute,
+                                onHomeClick      = {
+                                    navController.navigate("DashBoard") {
+                                        launchSingleTop = true
+                                        popUpTo("DashBoard") { saveState = false }
+                                    }
+                                },
+                                onMenuClick      = {
+                                    navController.navigate("menu/Meals") { launchSingleTop = true }
+                                },
+                                onFavoritesClick = {
+                                    navController.navigate("favorites") { launchSingleTop = true }
+                                },
+                                onChatClick      = {
+                                    navController.navigate("chat") { launchSingleTop = true }
+                                },
+                                onProfileClick   = {
+                                    navController.navigate("profile") { launchSingleTop = true }
                                 }
                             )
                         }
+                    }
+                ) { paddingValues ->
+                    // Push all screen content above the bottom nav bar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = paddingValues.calculateBottomPadding())
+                    ) {
+                        NavHost(
+                            navController    = navController,
+                            startDestination = "onboarding"
+                        ) {
 
-                        // --- MENU & DETAILS ---
-                        composable("menu/{category}", arguments = listOf(navArgument("category") { type = NavType.StringType })) { entry ->
-                            val cat = entry.arguments?.getString("category") ?: "Meals"
-                            MenuScreen(
-                                initialCategory = cat, 
-                                onBackClick = { navController.popBackStack() }, 
-                                onCartClick = { navController.navigate("cart") }, 
-                                onHomeClick = { navController.navigate("DashBoard") }, 
-                                onMenuClick = {}, 
-                                onProfileClick = { navController.navigate("profile") }, 
-                                onFavoriteClick = { navController.navigate("favorites") }, 
-                                onLiveChatClick = { navController.navigate("chat") }, 
-                                onItemClick = { item ->
-                                    val name = URLEncoder.encode(item.name, StandardCharsets.UTF_8.toString())
-                                    val price = URLEncoder.encode(item.price, StandardCharsets.UTF_8.toString())
-                                    val desc = URLEncoder.encode(item.description, StandardCharsets.UTF_8.toString())
-                                    val img = URLEncoder.encode(item.imageModel.toString(), StandardCharsets.UTF_8.toString())
-                                    navController.navigate("foodDetails/$name/$price/$desc/$img")
-                                }
-                            )
-                        }
+                            // ── ONBOARDING & HOME ────────────────────────────────
+                            composable("onboarding") {
+                                OnboardingScreen { navController.navigate("home") }
+                            }
+                            composable("home") {
+                                HomeScreen(onAction = { action ->
+                                    when (action) {
+                                        HomeAction.SignUp         -> navController.navigate("signup")
+                                        HomeAction.LogIn          -> navController.navigate("login")
+                                        HomeAction.GuestSignIn    -> navController.navigate("DashBoard") { popUpTo("home") { inclusive = true } }
+                                        HomeAction.TermsAndConditions -> navController.navigate("terms")
+                                        HomeAction.PrivacyPolicy  -> navController.navigate("privacy")
+                                    }
+                                })
+                            }
 
-                        composable("foodDetails/{itemName}/{itemPrice}/{description}/{itemImage}", arguments = listOf(navArgument("itemName") { type = NavType.StringType }, navArgument("itemPrice") { type = NavType.StringType }, navArgument("description") { type = NavType.StringType }, navArgument("itemImage") { type = NavType.StringType })) { entry ->
-                            FoodDetailsScreen(itemName = entry.arguments?.getString("itemName") ?: "", itemPrice = entry.arguments?.getString("itemPrice") ?: "", description = entry.arguments?.getString("description") ?: "", itemImage = entry.arguments?.getString("itemImage") ?: "", onBackClick = { navController.popBackStack() }, onCartClick = { navController.navigate("cart") })
-                        }
+                            // ── AUTHENTICATION ───────────────────────────────────
+                            composable("login") {
+                                LoginScreen(
+                                    onLogInClick  = { navController.navigate("DashBoard") { popUpTo("home") { inclusive = true } } },
+                                    onSignUpClick = { navController.navigate("signup") },
+                                    onBackClick   = { navController.popBackStack() }
+                                )
+                            }
+                            composable("signup") {
+                                SignUpScreen(
+                                    onSignUpClick  = { navController.navigate("DashBoard") { popUpTo("home") { inclusive = true } } },
+                                    onPrivacyClick = { navController.navigate("privacy") },
+                                    onTermsClick   = { navController.navigate("terms") },
+                                    onBackClick    = { navController.popBackStack() }
+                                )
+                            }
 
-                        // --- CART & CHECKOUT ---
-                        composable("cart") { CartScreen(onBackClick = { navController.popBackStack() }, onCheckoutClick = { navController.navigate("checkout") }) }
-                        
-                        composable("checkout") { 
-                            CheckoutScreen(
-                                onBackClick = { navController.popBackStack() }, 
-                                onPlaceOrderClick = { navController.navigate("orderSuccess") } // Connected!
-                            ) 
-                        }
-                        
-                        composable("orderSuccess") { 
-                            OrderSuccessScreen(
-                                onTrackOrderClick = { navController.navigate("orderTracking") }, 
-                                onContinueShoppingClick = { navController.navigate("DashBoard") { popUpTo("DashBoard") { inclusive = true } } }
-                            ) 
-                        }
+                            // ── DASHBOARD ────────────────────────────────────────
+                            composable("DashBoard") {
+                                DashBoard(
+                                    onCategoryClick = { category ->
+                                        navController.navigate("menu/$category")
+                                    },
+                                    onChatClick  = { navController.navigate("chat") },
+                                    onItemClick  = { item ->
+                                        val name  = URLEncoder.encode(item.name,        StandardCharsets.UTF_8.toString())
+                                        val price = URLEncoder.encode(item.price,       StandardCharsets.UTF_8.toString())
+                                        val desc  = URLEncoder.encode(item.description, StandardCharsets.UTF_8.toString())
+                                        val img   = URLEncoder.encode(item.imageUrl,    StandardCharsets.UTF_8.toString())
+                                        navController.navigate("foodDetails/$name/$price/$desc/$img")
+                                    }
+                                )
+                            }
 
-                        composable("orderTracking") {
-                            OrderTrackingScreen(onBackClick = { navController.popBackStack() })
-                        }
+                            // ── MENU & DETAILS ───────────────────────────────────
+                            composable(
+                                "menu/{category}",
+                                arguments = listOf(navArgument("category") { type = NavType.StringType })
+                            ) { entry ->
+                                val cat = entry.arguments?.getString("category") ?: "Meals"
+                                MenuScreen(
+                                    initialCategory = cat,
+                                    onBackClick     = { navController.popBackStack() },
+                                    onCartClick     = { navController.navigate("cart") },
+                                    onHomeClick     = { navController.navigate("DashBoard") },
+                                    onMenuClick     = {},
+                                    onProfileClick  = { navController.navigate("profile") },
+                                    onFavoriteClick = { navController.navigate("favorites") },
+                                    onLiveChatClick = { navController.navigate("chat") },
+                                    onItemClick     = { item ->
+                                        val name  = URLEncoder.encode(item.name,             StandardCharsets.UTF_8.toString())
+                                        val price = URLEncoder.encode(item.price,            StandardCharsets.UTF_8.toString())
+                                        val desc  = URLEncoder.encode(item.description,      StandardCharsets.UTF_8.toString())
+                                        val img   = URLEncoder.encode(item.imageModel.toString(), StandardCharsets.UTF_8.toString())
+                                        navController.navigate("foodDetails/$name/$price/$desc/$img")
+                                    }
+                                )
+                            }
 
-                        // --- PROFILE & SETTINGS ---
-                        composable("favorites") {
-                            FavoritesScreen(
-                                onBackClick = { navController.popBackStack() },
-                                onCartClick = { navController.navigate("cart") },
-                                onItemClick = { item ->
-                                    val name = URLEncoder.encode(item.name, StandardCharsets.UTF_8.toString())
-                                    val price = URLEncoder.encode(item.price, StandardCharsets.UTF_8.toString())
-                                    val desc = URLEncoder.encode(item.description, StandardCharsets.UTF_8.toString())
-                                    val img = URLEncoder.encode(item.imageModel.toString(), StandardCharsets.UTF_8.toString())
-                                    navController.navigate("foodDetails/$name/$price/$desc/$img")
-                                }
-                            )
-                        }
-                        composable("profile") {
-                            ProfileScreen(
-                                onBackClick = { navController.popBackStack() },
-                                onLogoutClick = { navController.navigate("home") { popUpTo(0) { inclusive = true } } },
-                                onOrdersClick = { navController.navigate("orderHistory") },
-                                onAddressesClick = { navController.navigate("savedAddresses") } // Connected!
-                            )
-                        }
-                        composable("orderHistory") { OrderHistoryScreen(onBackClick = { navController.popBackStack() }) }
-                        composable("savedAddresses") { SavedAddressesScreen(onBackClick = { navController.popBackStack() }) }
+                            composable(
+                                "foodDetails/{itemName}/{itemPrice}/{description}/{itemImage}",
+                                arguments = listOf(
+                                    navArgument("itemName")    { type = NavType.StringType },
+                                    navArgument("itemPrice")   { type = NavType.StringType },
+                                    navArgument("description") { type = NavType.StringType },
+                                    navArgument("itemImage")   { type = NavType.StringType }
+                                )
+                            ) { entry ->
+                                FoodDetailsScreen(
+                                    itemName  = entry.arguments?.getString("itemName")    ?: "",
+                                    itemPrice = entry.arguments?.getString("itemPrice")   ?: "",
+                                    description = entry.arguments?.getString("description") ?: "",
+                                    itemImage = entry.arguments?.getString("itemImage")   ?: "",
+                                    onBackClick = { navController.popBackStack() },
+                                    onCartClick = { navController.navigate("cart") }
+                                )
+                            }
 
-                        // --- LIVE CHAT ---
-                        composable("chat") { LiveChatScreen(onBackClick = { navController.popBackStack() }) }
+                            // ── CART & CHECKOUT ──────────────────────────────────
+                            composable("cart") {
+                                CartScreen(
+                                    onBackClick     = { navController.popBackStack() },
+                                    onCheckoutClick = { navController.navigate("checkout") }
+                                )
+                            }
+                            composable("checkout") {
+                                CheckoutScreen(
+                                    onBackClick      = { navController.popBackStack() },
+                                    onPlaceOrderClick = { navController.navigate("orderSuccess") }
+                                )
+                            }
+                            composable("orderSuccess") {
+                                OrderSuccessScreen(
+                                    onTrackOrderClick       = { navController.navigate("orderTracking") },
+                                    onContinueShoppingClick = { navController.navigate("DashBoard") { popUpTo("DashBoard") { inclusive = true } } }
+                                )
+                            }
+                            composable("orderTracking") {
+                                OrderTrackingScreen(onBackClick = { navController.popBackStack() })
+                            }
 
-                        // --- LEGAL SCREENS ---
-                        composable("terms") { 
-                            LegalScreen(title = "Terms & Conditions", content = "Standard terms...", onAccept = { navController.popBackStack() }, onDecline = { navController.popBackStack() })
-                        }
-                        composable("privacy") { 
-                            LegalScreen(title = "Privacy Policy", content = "Standard privacy...", onAccept = { navController.popBackStack() }, onDecline = { navController.popBackStack() })
+                            // ── PROFILE & SETTINGS ───────────────────────────────
+                            composable("favorites") {
+                                FavoritesScreen(
+                                    onBackClick = { navController.popBackStack() },
+                                    onCartClick = { navController.navigate("cart") },
+                                    onItemClick = { item ->
+                                        val name  = URLEncoder.encode(item.name,             StandardCharsets.UTF_8.toString())
+                                        val price = URLEncoder.encode(item.price,            StandardCharsets.UTF_8.toString())
+                                        val desc  = URLEncoder.encode(item.description,      StandardCharsets.UTF_8.toString())
+                                        val img   = URLEncoder.encode(item.imageModel.toString(), StandardCharsets.UTF_8.toString())
+                                        navController.navigate("foodDetails/$name/$price/$desc/$img")
+                                    }
+                                )
+                            }
+                            composable("profile") {
+                                ProfileScreen(
+                                    onBackClick      = { navController.popBackStack() },
+                                    onLogoutClick    = { navController.navigate("home") { popUpTo(0) { inclusive = true } } },
+                                    onOrdersClick    = { navController.navigate("orderHistory") },
+                                    onAddressesClick = { navController.navigate("savedAddresses") },
+                                    onAdminClick     = { navController.navigate("admin") }
+                                )
+                            }
+                            composable("orderHistory") {
+                                OrderHistoryScreen(onBackClick = { navController.popBackStack() })
+                            }
+                            composable("savedAddresses") {
+                                SavedAddressesScreen(onBackClick = { navController.popBackStack() })
+                            }
+
+                            // ── LIVE CHAT (MAX) ──────────────────────────────────
+                            composable("chat") {
+                                LiveChatScreen(onBackClick = { navController.popBackStack() })
+                            }
+
+                            // ── ADMIN PANEL ──────────────────────────────────────
+                            composable("admin") {
+                                AdminScreen(onBackClick = { navController.popBackStack() })
+                            }
+
+                            // ── LEGAL ────────────────────────────────────────────
+                            composable("terms") {
+                                LegalScreen(
+                                    title   = "Terms & Conditions",
+                                    content = "Standard terms...",
+                                    onAccept  = { navController.popBackStack() },
+                                    onDecline = { navController.popBackStack() }
+                                )
+                            }
+                            composable("privacy") {
+                                LegalScreen(
+                                    title   = "Privacy Policy",
+                                    content = "Standard privacy...",
+                                    onAccept  = { navController.popBackStack() },
+                                    onDecline = { navController.popBackStack() }
+                                )
+                            }
                         }
                     }
                 }
@@ -178,31 +279,163 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/**
- * REUSABLE LEGAL SCREEN: Atmospheric dark version.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Persistent bottom navigation bar — shown on all main screens
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+fun CraveDashBottomNav(
+    currentRoute: String?,
+    onHomeClick: () -> Unit,
+    onMenuClick: () -> Unit,
+    onFavoritesClick: () -> Unit,
+    onChatClick: () -> Unit,
+    onProfileClick: () -> Unit
+) {
+    val isDark   = ThemeManager.isDarkMode
+    val navBg    = if (isDark) Color(0xFF1A1A1A) else Color.White
+    val selected = Color(0xFFFF8C00)
+    val inactive = if (isDark) Color(0xFF666666) else Color(0xFFAAAAAA)
+    val pill     = if (isDark) Color(0xFF3A2000) else Color(0xFFFFF3E0)
+
+    val colors = NavigationBarItemDefaults.colors(
+        selectedIconColor   = selected,
+        selectedTextColor   = selected,
+        indicatorColor      = pill,
+        unselectedIconColor = inactive,
+        unselectedTextColor = inactive
+    )
+
+    Column {
+        // Hairline separator instead of tonal elevation tint
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color     = if (isDark) Color(0xFF2E2E2E) else Color(0xFFEEEEEE)
+        )
+        NavigationBar(
+            containerColor = navBg,
+            tonalElevation = 0.dp,
+            windowInsets   = NavigationBarDefaults.windowInsets
+        ) {
+            // ── HOME ──────────────────────────────────────────────────────────
+            NavigationBarItem(
+                selected = currentRoute == "DashBoard",
+                onClick  = onHomeClick,
+                icon     = { Icon(Icons.Default.Home, "Home", Modifier.size(24.dp)) },
+                label    = { Text("Home", fontSize = 10.sp, fontWeight = FontWeight.Medium) },
+                colors   = colors
+            )
+            // ── MENU ──────────────────────────────────────────────────────────
+            NavigationBarItem(
+                selected = currentRoute?.startsWith("menu/") == true,
+                onClick  = onMenuClick,
+                icon     = { Icon(Icons.Default.RestaurantMenu, "Menu", Modifier.size(24.dp)) },
+                label    = { Text("Menu", fontSize = 10.sp, fontWeight = FontWeight.Medium) },
+                colors   = colors
+            )
+            // ── SAVED (FAVORITES) ─────────────────────────────────────────────
+            NavigationBarItem(
+                selected = currentRoute == "favorites",
+                onClick  = onFavoritesClick,
+                icon     = { Icon(Icons.Default.Favorite, "Saved", Modifier.size(24.dp)) },
+                label    = { Text("Saved", fontSize = 10.sp, fontWeight = FontWeight.Medium) },
+                colors   = colors
+            )
+            // ── MAX (AI CHAT) ─────────────────────────────────────────────────
+            NavigationBarItem(
+                selected = currentRoute == "chat",
+                onClick  = onChatClick,
+                icon     = { Icon(Icons.Default.SupportAgent, "MAX", Modifier.size(24.dp)) },
+                label    = { Text("MAX", fontSize = 10.sp, fontWeight = FontWeight.Medium) },
+                colors   = colors
+            )
+            // ── PROFILE ───────────────────────────────────────────────────────
+            NavigationBarItem(
+                selected = currentRoute in setOf("profile", "orderHistory", "savedAddresses"),
+                onClick  = onProfileClick,
+                icon     = { Icon(Icons.Default.Person, "Profile", Modifier.size(24.dp)) },
+                label    = { Text("Profile", fontSize = 10.sp, fontWeight = FontWeight.Medium) },
+                colors   = colors
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Legal screen
+// ─────────────────────────────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LegalScreen(title: String, content: String, onAccept: () -> Unit, onDecline: () -> Unit) {
+fun LegalScreen(
+    title: String,
+    content: String,
+    onAccept: () -> Unit,
+    onDecline: () -> Unit
+) {
     Box(modifier = Modifier.fillMaxSize()) {
-        AsyncImage(model = "https://images.unsplash.com/photo-1556910103-1c02745a309e?w=800", contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Black.copy(alpha = 0.7f), Color.Black.copy(alpha = 0.9f)))))
+        AsyncImage(
+            model = "https://images.unsplash.com/photo-1556910103-1c02745a309e?w=800",
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(colors = listOf(Color.Black.copy(0.7f), Color.Black.copy(0.9f))))
+        )
         Scaffold(
             containerColor = Color.Transparent,
-            topBar = { TopAppBar(title = { Text(title, fontWeight = FontWeight.Bold, color = Color.White) }, navigationIcon = { IconButton(onClick = onDecline) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)) },
+            topBar = {
+                TopAppBar(
+                    title = { Text(title, fontWeight = FontWeight.Bold, color = Color.White) },
+                    navigationIcon = {
+                        IconButton(onClick = onDecline) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
+            },
             bottomBar = {
-                Surface(color = Color.Black.copy(alpha = 0.8f), modifier = Modifier.fillMaxWidth()) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(16.dp).navigationBarsPadding(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        OutlinedButton(onClick = onDecline, modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))) { Text("Decline", color = Color.White) }
-                        Button(onClick = onAccept, modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)) { Text("I Accept", fontWeight = FontWeight.Bold) }
+                Surface(color = Color.Black.copy(0.8f), modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .navigationBarsPadding(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDecline,
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, Color.White.copy(0.5f))
+                        ) { Text("Decline", color = Color.White) }
+                        Button(
+                            onClick = onAccept,
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
+                        ) { Text("I Accept", fontWeight = FontWeight.Bold) }
                     }
                 }
             }
         ) { padding ->
-            Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp)) {
-                Text(text = "Please review these documents to continue using CraveDash.", fontSize = 14.sp, color = Color.LightGray, modifier = Modifier.padding(bottom = 24.dp))
-                Text(text = content, fontSize = 16.sp, color = Color.White, lineHeight = 26.sp)
-                Spacer(modifier = Modifier.height(80.dp)) 
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp)
+            ) {
+                Text(
+                    "Please review these documents to continue using CraveDash.",
+                    fontSize = 14.sp,
+                    color = Color.LightGray,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+                Text(content, fontSize = 16.sp, color = Color.White, lineHeight = 26.sp)
+                Spacer(Modifier.height(80.dp))
             }
         }
     }

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    CraveDash onboarding badge — AI Concierge
+    Style: premium sparkle / intelligent system icon
+    A large 4-pointed star + two smaller accent stars
+    = the "magic / intelligence / AI" visual language used by
+      OpenAI, Notion AI, Apple Intelligence, Google Gemini etc.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Large 4-pointed star (main sparkle) centred at 11,13 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+        M11,4
+        L12.4,10.6
+        L19,12
+        L12.4,13.4
+        L11,20
+        L9.6,13.4
+        L3,12
+        L9.6,10.6
+        Z"/>
+
+    <!-- Small accent star — top right -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+        M19.5,4
+        L20.2,6.8
+        L23,7.5
+        L20.2,8.2
+        L19.5,11
+        L18.8,8.2
+        L16,7.5
+        L18.8,6.8
+        Z"/>
+
+    <!-- Tiny dot star — bottom right -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+        M20,16
+        L20.5,17.5
+        L22,18
+        L20.5,18.5
+        L20,20
+        L19.5,18.5
+        L18,18
+        L19.5,17.5
+        Z"/>
+
+</vector>

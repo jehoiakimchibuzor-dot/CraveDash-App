@@ -4,6 +4,8 @@
 
     <!-- NEW: This tells the phone it is okay for the app to use the internet! -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -15,6 +17,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.CraveDash"
         tools:targetApi="31">
+        <!-- Get your free Maps API key at: https://console.cloud.google.com -->
+        <!-- Enable "Maps SDK for Android" then paste your key below -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

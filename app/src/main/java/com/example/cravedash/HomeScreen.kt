@@ -2,21 +2,10 @@ package com.example.cravedash
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,166 +21,221 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage // magic tool for web photos
+import androidx.compose.foundation.text.ClickableText
+import coil.compose.AsyncImage
 
-/**
- * =================================================================================
- * HOME SCREEN: This is where users choose to Log In or Sign Up.
- * Updated: Replaced the old icon with a high-quality food image for a premium feel.
- * =================================================================================
- */
-
-// Add new actions for Terms and Privacy Policy
 enum class HomeAction {
-    SignUp,
-    LogIn,
-    GuestSignIn,
-    TermsAndConditions,
-    PrivacyPolicy
+    SignUp, LogIn, GuestSignIn, TermsAndConditions, PrivacyPolicy
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Home / Welcome Screen — premium food delivery landing page
+// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 fun HomeScreen(onAction: (HomeAction) -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .safeDrawingPadding()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
 
-    ) {
-        Spacer(modifier = Modifier.weight(1f))
+    Box(modifier = Modifier.fillMaxSize()) {
 
-        // Title text
-        Text(
-            text = "Hungry for the best?",
-            textAlign = TextAlign.Center,
-            fontSize = 40.sp,
-            fontWeight = FontWeight.Bold,
-            color =  Color.Black
+        // ── Full-screen hero image ────────────────────────────────────────────
+        AsyncImage(
+            model              = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=900",
+            contentDescription = null,
+            contentScale       = ContentScale.Crop,
+            modifier           = Modifier.fillMaxSize()
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        // Dark gradient overlay — heavier toward the bottom
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    0.00f to Color.Black.copy(0.25f),
+                    0.42f to Color.Black.copy(0.50f),
+                    0.68f to Color.Black.copy(0.75f),
+                    1.00f to Color.Black.copy(0.96f)
+                )
+            )
+        )
 
-        // --- THE PREMIUM IMAGE ---
-        // Replacing the generic icon with a real photo to give it that "Geek/Pro" vibe
-        AsyncImage(
-            model = "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",
-            contentDescription = "Premium Food",
-            contentScale = ContentScale.Crop,
+        // ── Top: CraveDash branding ───────────────────────────────────────────
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(250.dp)
-                .clip(RoundedCornerShape(24.dp))
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Subtitle text
-        Text(
-            text = "Enjoy the convenience of having a CraveDash account!",
-            textAlign = TextAlign.Center,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Light,
-            color = Color.Black
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // --- LOGIN BUTTON ---
-        Button(
-            onClick = { onAction(HomeAction.LogIn) },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF8C00)
-            ),
-            shape = RoundedCornerShape(12.dp)
+                .statusBarsPadding()
+                .padding(top = 16.dp, start = 24.dp, end = 24.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Log in",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(Color(0xFFFF8C00)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("CD", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text("CraveDash",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.ExtraBold)
+                Text("Lagos, Nigeria  📍",
+                    color = Color.White.copy(0.65f),
+                    fontSize = 11.sp)
+            }
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
 
-        // Sign up nudge
-        Text(
-            text = "Don't have an account yet? Sign up today!",
-            textAlign = TextAlign.Center,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Light,
-            color = Color.DarkGray
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // --- SIGN UP BUTTON ---
-        Button(
-            onClick = { onAction(HomeAction.SignUp) },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.LightGray
-            ),
-            shape = RoundedCornerShape(12.dp)
+        // ── Mid: Hero copy ────────────────────────────────────────────────────
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .padding(horizontal = 28.dp)
+                .padding(bottom = 280.dp),
+            horizontalAlignment = Alignment.Start
         ) {
+            Surface(
+                color = Color(0xFFFF8C00).copy(0.22f),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(
+                    "⚡  Fast delivery · 25–35 min",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                    color = Color(0xFFFF8C00),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(Modifier.height(14.dp))
             Text(
-                text = "Sign up with email",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
+                "Hungry?\nWe've got you.",
+                color = Color.White,
+                fontSize = 42.sp,
+                fontWeight = FontWeight.ExtraBold,
+                lineHeight = 48.sp,
+                letterSpacing = (-1).sp
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "Premium Nigerian food, delivered in minutes.",
+                color = Color.White.copy(0.72f),
+                fontSize = 15.sp,
+                lineHeight = 22.sp
             )
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
 
-        // --- LEGAL TEXT ---
-        val annotatedString = buildAnnotatedString {
-            append("By continuing, you agree to our updated ")
-            pushStringAnnotation(tag = "Terms", annotation = "Terms")
-            withStyle(style = SpanStyle(color = Color.Red, textDecoration = TextDecoration.Underline)) {
-                append("Terms & Conditions")
-            }
-            pop()
-            append(" and ")
-            pushStringAnnotation(tag = "Privacy", annotation = "Privacy")
-            withStyle(style = SpanStyle(color = Color.Red, textDecoration = TextDecoration.Underline)) {
-                append("Privacy Policy")
-            }
-            pop()
-        }
-
-        ClickableText(
-            text = annotatedString,
-            onClick = { offset ->
-                annotatedString.getStringAnnotations(tag = "Terms", start = offset, end = offset)
-                    .firstOrNull()?.let { onAction(HomeAction.TermsAndConditions) }
-                annotatedString.getStringAnnotations(tag = "Privacy", start = offset, end = offset)
-                    .firstOrNull()?.let { onAction(HomeAction.PrivacyPolicy) }
-            },
-            style = TextStyle(
-                textAlign = TextAlign.Center,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Light,
-                color = Color.Black
+        // ── Bottom: Auth sheet (rounded white card) ───────────────────────────
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .background(Color.White)
+                .navigationBarsPadding()
+                .padding(horizontal = 28.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Handle indicator
+            Box(
+                modifier = Modifier
+                    .size(40.dp, 4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color(0xFFDDDDDD))
             )
-        )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
 
-        // Guest sign in link
-        Text(
-            text = "Sign in as a guest",
-            modifier = Modifier.clickable { onAction(HomeAction.GuestSignIn) },
-            textAlign = TextAlign.Center,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color.Red
-        )
-        
-        Spacer(modifier = Modifier.weight(1f))
+            Text(
+                "Welcome to CraveDash",
+                color = Color(0xFF1A1A1A),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.5).sp
+            )
+            Spacer(Modifier.height(5.dp))
+            Text(
+                "Sign in or create an account to order",
+                color = Color(0xFF888888),
+                fontSize = 14.sp
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // ── Log In ────────────────────────────────────────────────────────
+            Button(
+                onClick   = { onAction(HomeAction.LogIn) },
+                modifier  = Modifier.fillMaxWidth().height(56.dp),
+                colors    = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF8C00)),
+                shape     = RoundedCornerShape(16.dp),
+                elevation = ButtonDefaults.buttonElevation(0.dp)
+            ) {
+                Text("Log In",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color      = Color.White)
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // ── Create Account ────────────────────────────────────────────────
+            OutlinedButton(
+                onClick  = { onAction(HomeAction.SignUp) },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape    = RoundedCornerShape(16.dp),
+                colors   = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color(0xFF1A1A1A)
+                )
+            ) {
+                Text("Create Account",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = Color(0xFF1A1A1A))
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            // ── Terms ─────────────────────────────────────────────────────────
+            val terms = buildAnnotatedString {
+                withStyle(SpanStyle(color = Color(0xFFAAAAAA), fontSize = 12.sp)) {
+                    append("By continuing, you agree to our ")
+                }
+                pushStringAnnotation("Terms", "Terms")
+                withStyle(SpanStyle(
+                    color = Color(0xFFFF8C00),
+                    fontWeight = FontWeight.SemiBold,
+                    textDecoration = TextDecoration.Underline,
+                    fontSize = 12.sp
+                )) { append("Terms") }
+                pop()
+                withStyle(SpanStyle(color = Color(0xFFAAAAAA), fontSize = 12.sp)) { append(" & ") }
+                pushStringAnnotation("Privacy", "Privacy")
+                withStyle(SpanStyle(
+                    color = Color(0xFFFF8C00),
+                    fontWeight = FontWeight.SemiBold,
+                    textDecoration = TextDecoration.Underline,
+                    fontSize = 12.sp
+                )) { append("Privacy Policy") }
+                pop()
+            }
+            ClickableText(
+                text  = terms,
+                style = TextStyle(textAlign = TextAlign.Center),
+                onClick = { offset ->
+                    terms.getStringAnnotations("Terms",   offset, offset).firstOrNull()?.let { onAction(HomeAction.TermsAndConditions) }
+                    terms.getStringAnnotations("Privacy", offset, offset).firstOrNull()?.let { onAction(HomeAction.PrivacyPolicy) }
+                }
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── Guest ─────────────────────────────────────────────────────────
+            Text(
+                "Continue as guest  →",
+                color    = Color(0xFFFF8C00),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable { onAction(HomeAction.GuestSignIn) }
+            )
+        }
     }
 }

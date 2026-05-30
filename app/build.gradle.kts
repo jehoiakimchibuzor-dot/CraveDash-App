@@ -21,6 +21,10 @@ android {
         // This looks into your hidden local.properties for the key!
         val geminiKey: String = project.findProperty("GEMINI_API_KEY")?.toString() ?: ""
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+
+        // Maps API key — read from local.properties, injected into Manifest
+        val mapsKey: String = project.findProperty("MAPS_API_KEY")?.toString() ?: ""
+        manifestPlaceholders["MAPS_API_KEY"] = mapsKey
     }
 
     buildTypes {
@@ -55,6 +59,17 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation("io.coil-kt:coil-compose:2.6.0")
+    // GPS — real location updates
+    implementation("com.google.android.gms:play-services-location:21.2.0")
+    // Google Maps Compose — live map with moving pins
+    implementation("com.google.maps.android:maps-compose:4.3.3")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+    // AppCompat
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    // Chrome Custom Tabs — opens Paystack hosted checkout in-app
+    implementation("androidx.browser:browser:1.8.0")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.9.7")
     implementation(libs.androidx.material3)
